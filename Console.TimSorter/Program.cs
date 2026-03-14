@@ -20,6 +20,7 @@ namespace Console.TimSorter
 {
     /* Imports from NET Framework */
     using System;
+    using System.Timers;
 
     public class Program
     {
@@ -34,6 +35,7 @@ namespace Console.TimSorter
             mainMenu.AddItem("TimSorter; einfache Anwendung", MenuPoint1);
             mainMenu.AddItem("TimSorter; als Extension", MenuPoint2);
             mainMenu.AddItem("TimSorter; mit Custom Object", MenuPoint3);
+            mainMenu.AddItem("Performance Standard Sort vs. Tim Sort", MenuPoint4);
             mainMenu.AddItem("Beenden", () => ApplicationExit());
             mainMenu.Show();
         }
@@ -91,6 +93,36 @@ namespace Console.TimSorter
                 CMenu.Print($"{person.Name} ({person.Age} Jahre)");
             }
 
+            CMenu.Print(new string('-',40), ConsoleColor.Green);
+            SortHelper.TimSort(people, (a, b) => a.Age.CompareTo(b.Age), SortDirection.Descending);
+            foreach (var person in people)
+            {
+                CMenu.Print($"{person.Name} ({person.Age} Jahre)");
+            }
+
+            CMenu.Wait();
+        }
+
+        private static void MenuPoint4()
+        {
+            Console.Clear();
+
+            List<int> data = GenerateListOfInt(1_000_00, 1, 1_000_00);
+
+            System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
+            stopwatch.Start();
+
+            Array.Sort(data.ToArray()); // Standard Sortierung
+
+            stopwatch.Stop();
+            CMenu.Print($"Standard Sort;Zeitdifferenz : {stopwatch.ElapsedMilliseconds} ms");
+
+            stopwatch.Reset();
+            stopwatch.Restart();
+            TimSorter.Sort(data);
+            stopwatch.Stop();
+            CMenu.Print($"Tim Sort;Zeitdifferenz : {stopwatch.ElapsedMilliseconds} ms");
+
             CMenu.Wait();
         }
 
@@ -123,122 +155,6 @@ namespace Console.TimSorter
         public int Compare(Person x, Person y)
         {
             return x.Age.CompareTo(y.Age);
-        }
-    }
-
-    public static class TimSortExtensions
-    {
-        public static void TimSort<T>(this List<T> list) where T : IComparable<T>
-        {
-            var array = list.ToArray();
-
-            TimSorter.Sort<T>(array);
-
-            for (int i = 0; i < array.Length; i++)
-            {
-                list[i] = array[i];
-            }
-        }
-    }
-
-    public static class TimSorter
-    {
-        private const int MIN_RUN = 32;
-
-        public static void Sort<T>(List<T> list) where T : IComparable<T>
-        {
-            var array = list.ToArray();
-
-            Sort(array, Comparer<T>.Default);
-
-            for (int i = 0; i < array.Length; i++)
-            {
-                list[i] = array[i];
-            }
-        }
-
-        public static void Sort<T>(List<T> list, IComparer<T> comparer) where T : IComparable<T>
-        {
-            var array = list.ToArray();
-
-            Sort(array, comparer);
-
-            for (int i = 0; i < array.Length; i++)
-            {
-                list[i] = array[i];
-            }
-        }
-
-        public static void Sort<T>(T[] array)
-        {
-            Sort(array, Comparer<T>.Default);
-        }
-
-        public static void Sort<T>(T[] array, IComparer<T> comparer)
-        {
-            int n = array.Length;
-
-            for (int i = 0; i < n; i += MIN_RUN)
-            {
-                InsertionSort(array, i, Math.Min(i + MIN_RUN - 1, n - 1), comparer);
-            }
-
-            for (int size = MIN_RUN; size < n; size *= 2)
-            {
-                for (int left = 0; left < n; left += 2 * size)
-                {
-                    int mid = left + size - 1;
-                    int right = Math.Min(left + 2 * size - 1, n - 1);
-
-                    if (mid < right)
-                        Merge(array, left, mid, right, comparer);
-                }
-            }
-        }
-
-        private static void InsertionSort<T>(T[] array, int left, int right, IComparer<T> comparer)
-        {
-            for (int i = left + 1; i <= right; i++)
-            {
-                T temp = array[i];
-                int j = i - 1;
-
-                while (j >= left && comparer.Compare(array[j], temp) > 0)
-                {
-                    array[j + 1] = array[j];
-                    j--;
-                }
-
-                array[j + 1] = temp;
-            }
-        }
-
-        private static void Merge<T>(T[] array, int left, int mid, int right, IComparer<T> comparer)
-        {
-            int len1 = mid - left + 1;
-            int len2 = right - mid;
-
-            T[] leftArr = new T[len1];
-            T[] rightArr = new T[len2];
-
-            Array.Copy(array, left, leftArr, 0, len1);
-            Array.Copy(array, mid + 1, rightArr, 0, len2);
-
-            int i = 0, j = 0, k = left;
-
-            while (i < len1 && j < len2)
-            {
-                if (comparer.Compare(leftArr[i], rightArr[j]) <= 0)
-                    array[k++] = leftArr[i++];
-                else
-                    array[k++] = rightArr[j++];
-            }
-
-            while (i < len1)
-                array[k++] = leftArr[i++];
-
-            while (j < len2)
-                array[k++] = rightArr[j++];
         }
     }
 }
